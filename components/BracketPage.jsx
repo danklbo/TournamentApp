@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function BracketPage() {
+export const BracketPage = () => {
   const {
     groups,
     bracketMatches = {},
