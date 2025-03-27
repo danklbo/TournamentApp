@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BracketMatchForm } from './BracketMatchForm';
 
 export const BracketPage = () => {
   const {
@@ -146,52 +147,15 @@ export const BracketPage = () => {
           />
         </div>
       </div>
-      {activeMatch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-            <div className="bg-white p-4 rounded-lg w-96 relative">
-            <button 
-                onClick={() => setActiveMatch(null)}
-                className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full text-xl"
-            >
-                &times;
-            </button>
-            <h3 className="text-xl font-bold mb-4">Enter Scores for {activeMatch}</h3>
-            {scores.map((score, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                <Input
-                    type="number"
-                    placeholder="Team 1"
-                    value={score.team1}
-                    onChange={(e) => {
-                    const newScores = [...scores];
-                    newScores[index].team1 = e.target.value;
-                    setScores(newScores);
-                    }}
-                />
-                <Input
-                    type="number"
-                    placeholder="Team 2"
-                    value={score.team2}
-                    onChange={(e) => {
-                    const newScores = [...scores];
-                    newScores[index].team2 = e.target.value;
-                    setScores(newScores);
-                    }}
-                />
-                </div>
-            ))}
-            <div className="flex gap-2 mt-4">
-                <Button onClick={() => setScores([...scores, { team1: '', team2: '' }])}>
-                Add Set
-                </Button>
-                <Button onClick={handleSubmit}>
-                Save Scores
-                </Button>
-            </div>
-            </div>
-        </div>
-        )}
-        </div>
+        <BracketMatchForm 
+          activeMatch={activeMatch}
+          setActiveMatch={setActiveMatch}
+          scores={scores}
+          setScores={setScores}
+          handleSubmit={handleSubmit}
+        />
+
+      </div>
     );
 }
   
