@@ -1,187 +1,282 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function BracketPage() {
-  const { groups } = useStore();
-  
-  // Calculate standings using the same logic as groups screen
-  const calculateStandings = (group) => {
-    if (!group) return [];
-    return [...group.teams].sort((a, b) => {
-      // 1. Points (descending)
-      if (b.points !== a.points) return b.points - a.points;
-      
-      // 2. Head-to-head result
-      const match = group.matches.find(m => {
-        const teamsInMatch = [m.team1, m.team2];
-        return teamsInMatch.includes(a.id) && teamsInMatch.includes(b.id);
-      });
+  const {
+    groups,
+    bracketMatches = {},
+    updateBracketMatch,
+    advanceTeam,
+    initializeBracket,
+  } = useStore();
 
-      if (match) {
-        // Calculate sets won in their direct match
-        let aSets = 0, bSets = 0;
-        match.sets.forEach(set => {
-          const isATeam1 = match.team1 === a.id;
-          const setWinner = set.team1 > set.team2 ? 
-                          (isATeam1 ? 'a' : 'b') : 
-                          (isATeam1 ? 'b' : 'a');
-          
-          if (setWinner === 'a') aSets++;
-          else bSets++;
-        });
 
-        if (aSets !== bSets) return bSets - aSets;
-        
-        // 3. Points difference in their match
-        let aPoints = 0, bPoints = 0;
-        match.sets.forEach(set => {
-          if (match.team1 === a.id) {
-            aPoints += set.team1;
-            bPoints += set.team2;
-          } else {
-            aPoints += set.team2;
-            bPoints += set.team1;
-          }
-        });
-        return (bPoints - aPoints);
-      }
-      
-      return 0;
-    });
+  const [activeMatch, setActiveMatch] = useState(null);
+  const [scores, setScores] = useState([{ team1: '', team2: '' }]);
+
+  // Initialize bracket when groups change
+  useEffect(() => {
+    initializeBracket();
+  }, [groups, initializeBracket]);
+
+  const getTeamName = (teamId) => {
+    const allTeams = groups?.flatMap(group => group.teams) || [];
+    return allTeams.find(t => t.id === teamId)?.name || teamId;
   };
 
-  const sortedA = calculateStandings(groups.find(g => g.name === 'A'));
-  const sortedB = calculateStandings(groups.find(g => g.name === 'B'));
+  const handleSubmit = () => {
+    if (!activeMatch) return;
+
+    const currentMatch = bracketMatches[activeMatch];
+    if (!currentMatch) return;
+
+    const team1Wins = scores.filter(s => Number(s.team1) > Number(s.team2)).length;
+    const team2Wins = scores.length - team1Wins;
+    const winner = team1Wins > team2Wins ? currentMatch.team1 : currentMatch.team2;
+    const loser = team1Wins > team2Wins ? currentMatch.team2 : currentMatch.team1;
+
+    updateBracketMatch(activeMatch, {
+      sets: scores.map(s => ({ team1: Number(s.team1), team2: Number(s.team2) })),
+      completed: true,
+      team1Sets: team1Wins,
+      team2Sets: team2Wins
+    });
+
+    const advancementRules = {
+      semifinal1: { win: 'final', lose: 'thirdPlace' },
+      semifinal2: { win: 'final', lose: 'thirdPlace' },
+      consolation1: { win: 'fifthPlace', lose: 'seventhPlace' },
+      consolation2: { win: 'fifthPlace', lose: 'seventhPlace' }
+    };
+
+    if (advancementRules[activeMatch]) {
+      advanceTeam(advancementRules[activeMatch].win, winner);
+      advanceTeam(advancementRules[activeMatch].lose, loser);
+    }
+
+    setActiveMatch(null);
+    setScores([{ team1: '', team2: '' }]);
+  };
 
   return (
-    <div className="h-screen w-screen p-4 bg-gray-50 overflow-auto">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">Tournament Bracket</h1>
-        
-        {/* Final Match */}
-        <div className="flex justify-center mb-12">
-          <BracketMatch 
-            title="Final" 
-            team1={sortedA[0]?.name || '1A'} 
-            team2={sortedB[0]?.name || '1B'} 
-            level="championship"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {/* Semifinal 1 (A1 vs B2) */}
-          <div className="flex flex-col items-end space-y-16">
-            <BracketMatch 
-              team1={sortedA[0]?.name || '1A'} 
-              team2={sortedB[1]?.name || '2B'} 
+    <div className="h-screen w-screen p-4 bg-slate-50 grid grid-cols-2 gap-4 overflow-hidden">
+      {/* Left Column - Main Bracket */}
+      <div className="h-full flex flex-col">
+        <h2 className="text-xl font-bold text-slate-700 mb-2">Main Bracket</h2>
+        <div className="grid grid-rows-[1fr,1fr,2fr] gap-2 flex-1">
+          {/* Semifinals */}
+          <div className="grid gap-2">
+            <MatchCard
+              match={bracketMatches?.semifinal1}
+              title="Semifinal 1"
+              getTeamName={getTeamName}
+              className="h-full border-blue-300"
+              onAddScore={() => setActiveMatch('semifinal1')}
             />
-            <div className="relative">
-              <div className="absolute top-1/2 right-0 h-1 w-8 bg-gray-300 -translate-y-1/2"></div>
-              <div className="absolute top-1/2 right-8 h-16 w-1 bg-gray-300 -translate-y-1/2"></div>
-            </div>
+            <MatchCard
+              match={bracketMatches?.semifinal2}
+              title="Semifinal 2"
+              getTeamName={getTeamName}
+              className="h-full border-blue-300"
+              onAddScore={() => setActiveMatch('semifinal2')}
+            />
           </div>
-          
-          {/* Semifinal 2 (A2 vs B1) */}
-          <div className="flex flex-col items-start space-y-16">
-            <BracketMatch 
-              team1={sortedA[1]?.name || '2A'} 
-              team2={sortedB[0]?.name || '1B'} 
+  
+          {/* Consolation Matches */}
+          <div className="grid gap-2 pt-2">
+            <MatchCard
+              match={bracketMatches?.consolation1}
+              title="5th Place Semi 1"
+              getTeamName={getTeamName}
+              className="h-full border-green-300"
+              onAddScore={() => setActiveMatch('consolation1')}
             />
-            <div className="relative">
-              <div className="absolute top-1/2 left-0 h-1 w-8 bg-gray-300 -translate-y-1/2"></div>
-              <div className="absolute top-1/2 left-8 h-16 w-1 bg-gray-300 -translate-y-1/2"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3rd Place Match */}
-        <div className="flex justify-center mb-12">
-          <BracketMatch 
-            title="3rd Place" 
-            team1="Loser SF1" 
-            team2="Loser SF2" 
-            level="consolation"
-          />
-        </div>
-
-        {/* Quarterfinals (5th-8th places) */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {/* Left Side (A3 vs B4) */}
-          <div className="flex flex-col items-end space-y-16">
-            <BracketMatch 
-              team1={sortedA[2]?.name || '3A'} 
-              team2={sortedB[3]?.name || '4B'} 
-              level="secondary"
+            <MatchCard
+              match={bracketMatches?.consolation2}
+              title="5th Place Semi 2"
+              getTeamName={getTeamName}
+              className="h-full border-green-300"
+              onAddScore={() => setActiveMatch('consolation2')}
             />
-            <div className="relative">
-              <div className="absolute top-1/2 right-0 h-1 w-8 bg-gray-300 -translate-y-1/2"></div>
-              <div className="absolute top-1/2 right-8 h-16 w-1 bg-gray-300 -translate-y-1/2"></div>
-            </div>
-          </div>
-          
-          {/* Right Side (A4 vs B3) */}
-          <div className="flex flex-col items-start space-y-16">
-            <BracketMatch 
-              team1={sortedA[3]?.name || '4A'} 
-              team2={sortedB[2]?.name || '3B'} 
-              level="secondary"
-            />
-            <div className="relative">
-              <div className="absolute top-1/2 left-0 h-1 w-8 bg-gray-300 -translate-y-1/2"></div>
-              <div className="absolute top-1/2 left-8 h-16 w-1 bg-gray-300 -translate-y-1/2"></div>
-            </div>
           </div>
         </div>
-
-        {/* 5th & 7th Place Matches */}
-        <div className="flex justify-center space-x-16 mb-12">
-          <BracketMatch 
-            title="5th Place" 
-            team1="Winner QF1" 
-            team2="Winner QF2" 
-            level="secondary"
+      </div>
+  
+      {/* Right Column - Placement Matches */}
+      <div className="h-full flex flex-col">
+        <h2 className="text-xl font-bold text-slate-700 mb-2">Placements</h2>
+        <div className="grid grid-rows-[1.5fr,1fr,1fr,1fr,1fr] gap-2 flex-1">
+          <MatchCard
+            match={bracketMatches?.final}
+            title="🏆 FINAL"
+            getTeamName={getTeamName}
+            className="border-amber-400 bg-amber-50"
+            onAddScore={() => setActiveMatch('final')}
           />
-          <BracketMatch 
-            title="7th Place" 
-            team1="Loser QF1" 
-            team2="Loser QF2" 
-            level="secondary"
+          <MatchCard
+            match={bracketMatches?.thirdPlace}
+            title="🥉 3rd Place"
+            getTeamName={getTeamName}
+            className="border-purple-300 bg-purple-50"
+            onAddScore={() => setActiveMatch('thirdPlace')}
           />
-        </div>
-
-        {/* 9th Place Match */}
-        <div className="flex justify-center">
-          <BracketMatch 
-            title="9th Place" 
-            team1={sortedA[4]?.name || '5A'} 
-            team2={sortedB[4]?.name || '5B'} 
-            level="secondary"
+          <MatchCard
+            match={bracketMatches?.fifthPlace}
+            title="5th Place"
+            getTeamName={getTeamName}
+            className="border-emerald-300"
+            onAddScore={() => setActiveMatch('fifthPlace')}
+          />
+          <MatchCard
+            match={bracketMatches?.seventhPlace}
+            title="7th Place"
+            getTeamName={getTeamName}
+            className="border-rose-300"
+            onAddScore={() => setActiveMatch('seventhPlace')}
+          />
+          <MatchCard
+            match={bracketMatches?.ninthPlace}
+            title="9th Place"
+            getTeamName={getTeamName}
+            className="border-pink-300"
+            onAddScore={() => setActiveMatch('ninthPlace')}
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function BracketMatch({ title, team1, team2, level = 'primary' }) {
-  const bgColor = level === 'championship' ? 'bg-blue-50 border-blue-200' :
-                  level === 'consolation' ? 'bg-purple-50 border-purple-200' :
-                  'bg-gray-50 border-gray-200';
-  
-  const textColor = level === 'championship' ? 'text-blue-800' :
-                    level === 'consolation' ? 'text-purple-800' :
-                    'text-gray-800';
-
-  return (
-    <div className={`border-2 rounded-lg p-3 w-64 ${bgColor}`}>
-      {title && (
-        <div className={`font-bold text-center mb-2 ${textColor}`}>
-          {title}
+      {activeMatch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+            <div className="bg-white p-4 rounded-lg w-96 relative">
+            <button 
+                onClick={() => setActiveMatch(null)}
+                className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full text-xl"
+            >
+                &times;
+            </button>
+            <h3 className="text-xl font-bold mb-4">Enter Scores for {activeMatch}</h3>
+            {scores.map((score, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                <Input
+                    type="number"
+                    placeholder="Team 1"
+                    value={score.team1}
+                    onChange={(e) => {
+                    const newScores = [...scores];
+                    newScores[index].team1 = e.target.value;
+                    setScores(newScores);
+                    }}
+                />
+                <Input
+                    type="number"
+                    placeholder="Team 2"
+                    value={score.team2}
+                    onChange={(e) => {
+                    const newScores = [...scores];
+                    newScores[index].team2 = e.target.value;
+                    setScores(newScores);
+                    }}
+                />
+                </div>
+            ))}
+            <div className="flex gap-2 mt-4">
+                <Button onClick={() => setScores([...scores, { team1: '', team2: '' }])}>
+                Add Set
+                </Button>
+                <Button onClick={handleSubmit}>
+                Save Scores
+                </Button>
+            </div>
+            </div>
         </div>
-      )}
-      <div className="text-center font-medium py-1">{team1}</div>
-      <div className="text-center py-1">vs</div>
-      <div className="text-center font-medium py-1">{team2}</div>
-    </div>
-  );
+        )}
+        </div>
+    );
 }
+  
+function MatchCard({ match, title, getTeamName, className = '', onAddScore }) {
+    // Determine winner and loser
+    const isCompleted = match?.completed;
+    const team1Wins = match?.team1Sets || 0;
+    const team2Wins = match?.team2Sets || 0;
+    const winner = team1Wins > team2Wins ? 1 : team2Wins > team1Wins ? 2 : null;
+  
+    return (
+      <div className={`relative p-2 border-l-4 rounded-r bg-white shadow-sm h-full flex flex-col ${className}`}>
+        <div className="flex justify-between items-center mb-[2px]">
+          <h3 className="text-sm font-semibold truncate">{title}</h3>
+          <div className="flex items-center gap-1">
+            {isCompleted && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-gray-500 hover:bg-gray-100"
+                onClick={onAddScore}
+              >
+                ×
+              </Button>
+            )}
+            {isCompleted && (
+              <span className="text-xs bg-green-100 text-green-800 px-1 rounded">✓</span>
+            )}
+          </div>
+        </div>
+  
+        <div className="flex flex-col justify-center flex-1">
+        {/* Team 1 */}
+        <div className="flex justify-between items-center bg-white rounded-lg">
+          <span className={`truncate ${
+            match?.completed ? 
+              (team1Wins ? 'font-bold' : 'text-gray-500') 
+              : 'font-medium'
+          }`}>
+            {match?.team1 ? getTeamName(match.team1) : 'TBD'}
+          </span>
+          <span className={`font-mono ml-2 ${
+            team1Wins ? 'text-blue-600' : 'text-gray-500'
+          }`}>
+            {match?.team1Sets || 0}
+          </span>
+        </div>
+
+        {/* Team 2 */}
+        <div className="flex justify-between items-center bg-white rounded-lg">
+          <span className={`truncate ${
+            match?.completed ? 
+              (team2Wins ? 'font-bold' : 'text-gray-500') 
+              : 'font-medium'
+          }`}>
+            {match?.team2 ? getTeamName(match.team2) : 'TBD'}
+          </span>
+          <span className={`font-mono ml-2 ${
+            team2Wins ? 'text-blue-600' : 'text-gray-500'
+          }`}>
+            {match?.team2Sets || 0}
+          </span>
+        </div>
+      </div>
+
+  
+        {isCompleted && (
+          <div className="mt-1 text-center text-sm text-slate-500">
+            {match.sets?.map((set, i) => (
+              <span key={i} className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">
+                {set.team1}-{set.team2}
+              </span>
+            ))}
+          </div>
+        )}
+  
+        {!isCompleted && match?.team1 && match?.team2 && (
+          <Button
+            variant="outline"
+            className="w-full mt-2 h-8 text-sm hover:bg-white hover:shadow"
+            onClick={onAddScore}
+          >
+            ✏️ Enter Scores
+          </Button>
+        )}
+      </div>
+    );
+  }

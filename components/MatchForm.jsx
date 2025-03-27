@@ -32,12 +32,7 @@ export const MatchForm = ({ group }) => {
     }
   }, [selectedTeam1, selectedTeam2]);
 
-
   const handleSubmit = () => {
-    console.log(group.name)
-    console.log(selectedTeam1)
-    console.log(selectedTeam2)
-    console.log(sets)
     addMatchResult(
       group.name,
       selectedTeam1,

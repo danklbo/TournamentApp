@@ -54,7 +54,8 @@ export const GroupTable = ({ group }) => {
       // 4. If no head-to-head, maintain current order
       return 0;
     });
-  };  return (
+  };  
+  return (
     <div className="rounded-md border h-full flex flex-col">
       <div className="flex justify-between items-stretch border-b">
         <h2 className="p-6 text-4xl font-bold  flex items-center">
