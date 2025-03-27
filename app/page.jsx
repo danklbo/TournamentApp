@@ -4,31 +4,77 @@ import { GroupTable } from '@/components/GroupTable';
 import { useStore } from '@/lib/store';
 import { BracketPage } from '@/components/BracketPage';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export default function Home() {
-  const { groups } = useStore();
+  const { groups, resetTournament } = useStore();
   const [showBrackets, setShowBrackets] = useState(false);
-
   
   return (
-    <main className="min-h-screen grid">
+    <main className="min-h-screen">
       {!showBrackets ? (
-        <div className="mt-5 p-8" >
-          <div className="grid grid-cols-2 gap-8 mb-10 ">
-            {groups.map((group) => (
-              <div key={group.name} className="space-y-4">
-                <GroupTable group={group} />
-              </div>
-            ))}
+        <div className='p-8'>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+              {groups.map((group) => (
+                <div key={group.name} className="space-y-4">
+                  <GroupTable group={group} />
+                </div>
+              ))}
           </div>
-          <div className="mb-8 flex justify-left">
+          <div className="mb-8 flex justify-center gap-4">                
             <Button 
               onClick={() => setShowBrackets(true)}
-              className="text-lg py-6 px-8"
-            >
+              className="text-lg py-6 px-8">
               🏁 Finalize Group Stage & Start Brackets
             </Button>
-          </div>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  className="text-lg py-6 px-8"
+                >
+                  🗑 Reset Tournament
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Confirm Tournament Reset</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. All teams, matches, and scores will be permanently removed.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="sm:justify-end">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowBrackets(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      resetTournament();
+                      setShowBrackets(false);
+                    }}
+                  >
+                    Confirm Reset
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            </div>
 
         </div>
       ) : (

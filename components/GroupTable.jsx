@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { MatchForm } from '@/components/MatchForm';
+import { Group } from '@radix-ui/react-select';
 
 
 export const GroupTable = ({ group }) => {
