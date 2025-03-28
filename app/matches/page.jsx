@@ -84,8 +84,8 @@ function CompactMatchCard({ match, teams }) {
   let team2Sets = 0;
 
   match.sets.forEach(set => {
-    if (set.team1 > set.team2) team1Sets++;
-    else if (set.team1 < set.team2) team2Sets++;
+    if (parseInt(set.team1) > parseInt(set.team2)) team1Sets++;
+    else if (parseInt(set.team1) < parseInt(set.team2)) team2Sets++;
   });
 
   const result = team1Sets > team2Sets ? `${team1?.name} won` :

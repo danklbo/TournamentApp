@@ -17,26 +17,28 @@ import {
 export default function Home() {
   const { groups, resetTournament } = useStore();
   const [showBrackets, setShowBrackets] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+
   
   return (
     <main className="min-h-screen">
       {!showBrackets ? (
         <div className='p-8'>
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-6">
               {groups.map((group) => (
                 <div key={group.name} className="space-y-4">
                   <GroupTable group={group} />
                 </div>
               ))}
           </div>
-          <div className="mb-8 flex justify-center gap-4">                
+          <div className="mb-8 flex justify-center gap-8">                
             <Button 
               onClick={() => setShowBrackets(true)}
               className="text-lg py-6 px-8">
               🏁 Finalize Group Stage & Start Brackets
             </Button>
 
-            <Dialog>
+            <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
               <DialogTrigger asChild>
                 <Button 
                   variant="destructive"
@@ -57,7 +59,7 @@ export default function Home() {
                   <Button 
                     type="button"
                     variant="outline"
-                    onClick={() => setShowBrackets(false)}
+                    onClick={() => setResetModalOpen(false)}
                   >
                     Cancel
                   </Button>
@@ -66,7 +68,7 @@ export default function Home() {
                     variant="destructive"
                     onClick={() => {
                       resetTournament();
-                      setShowBrackets(false);
+                      setResetModalOpen(false);
                     }}
                   >
                     Confirm Reset
