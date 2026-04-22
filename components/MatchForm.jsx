@@ -19,6 +19,16 @@ export const MatchForm = ({ group }) => {
   });
 
   useEffect(() => {
+    if (!open) {
+      setSelectedTeam1('');
+      setSelectedTeam2('');
+      setSets([{ team1: '', team2: '' }]);
+      setFormError('');
+      setPrevSelections({ team1: '', team2: '' });
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (selectedTeam1 && selectedTeam1 === selectedTeam2) {
       setFormError('Teams must be different');
       // Roll back to previous valid selection

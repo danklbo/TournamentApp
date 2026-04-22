@@ -18,10 +18,17 @@ export const BracketPage = () => {
   const [activeMatch, setActiveMatch] = useState(null);
   const [scores, setScores] = useState([{ team1: '', team2: '' }]);
 
-  // Initialize bracket when groups change
+  useEffect(() => {
+    if (!activeMatch) {
+      setScores([{ team1: '', team2: '' }]);
+    }
+  }, [activeMatch]);
+
+  // Initialize bracket once when bracket view is shown
   useEffect(() => {
     initializeBracket();
-  }, [groups, initializeBracket]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getTeamName = (teamId) => {
     const allTeams = groups?.flatMap(group => group.teams) || [];

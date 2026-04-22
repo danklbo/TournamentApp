@@ -69,6 +69,7 @@ export default function Home() {
                     onClick={() => {
                       resetTournament();
                       setResetModalOpen(false);
+                      setShowBrackets(false);
                     }}
                   >
                     Confirm Reset
